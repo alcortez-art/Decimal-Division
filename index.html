@@ -146,6 +146,8 @@ button{font-family:inherit}
 .btn{all:unset;position:relative;overflow:hidden;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--line);font:600 16px var(--display);color:var(--ink);cursor:pointer;background:var(--surface2)}
 .btn.counting::after{content:"";position:absolute;left:0;bottom:0;height:4px;background:currentColor;opacity:.6;animation:count var(--dur,1.5s) linear forwards}
 @keyframes count{from{width:0}to{width:100%}}
+.langs{display:flex;gap:6px;margin-left:6px;padding-left:10px;border-left:2px solid var(--line)}
+.manual #bPlay{display:none}
 .hint{width:100%;font-size:13px;color:var(--muted)}
 @media (hover:none){.hint{display:none}}
 .q.nudge{animation:shake .35s}
@@ -192,26 +194,27 @@ button{font-family:inherit}
       <path d="M9 18v16h22V18" fill="none" stroke="var(--wall)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
       <rect x="17" y="24" width="6" height="10" rx="1.5" fill="var(--yellow)"/>
     </svg>
-    <div><h1>Dividing decimals</h1><p>Build the house. Raise the roof.</p></div>
+    <div><h1 id="hTitle">Dividing decimals</h1><p id="hSub">Build the house. Raise the roof.</p></div>
     <div class="hbtns">
       <button class="btn sm primary" id="bWalk" type="button" aria-pressed="true">Walkthrough</button>
       <button class="btn sm" id="bOwn" type="button" aria-pressed="false">Type your own problem</button>
-      <label class="teach"><input type="checkbox" id="unlock"> Teacher mode</label>
+      <div class="langs" role="group" aria-label="Language"><button class="btn sm primary" id="langEn" type="button" aria-pressed="true">English</button><button class="btn sm" id="langEs" type="button" aria-pressed="false">Español</button></div>
+      <label class="teach"><input type="checkbox" id="unlock"> <span id="teachTxt">Teacher mode</span></label>
     </div>
   </header>
   <div class="layout">
     <nav class="rail" aria-label="The steps">
-      <h2>The steps</h2>
+      <h2 id="railH">The steps</h2>
       <ol id="steps"></ol>
-      <p class="skip">Divisor already a whole number? Skip steps 1 and 2.</p>
+      <p class="skip" id="skipTxt">Whole-number divisor? Skip steps 1 and 2.</p>
     </nav>
     <main class="stage">
       <div class="boardhead">
         <form class="pinline" id="pinline" novalidate>
-          <label class="pfield">dividend (inside)<input id="qDvd" inputmode="decimal" autocomplete="off" value="4.5"></label>
+          <label class="pfield"><span id="lblDvd">dividend (inside)</span><input id="qDvd" inputmode="decimal" autocomplete="off" value="4.5"></label>
           <span class="pdiv" aria-hidden="true">÷</span>
-          <label class="pfield">divisor (outside)<input id="qDvr" inputmode="decimal" autocomplete="off" value="0.4"></label>
-          <button class="btn sm primary" type="submit">Go</button>
+          <label class="pfield"><span id="lblDvr">divisor (outside)</span><input id="qDvr" inputmode="decimal" autocomplete="off" value="0.4"></label>
+          <button class="btn sm primary" id="goBtn" type="submit">Go</button>
           <button class="btn sm" type="button" id="qSurprise">Surprise me</button>
         </form>
         <div class="perr2" id="qerr" role="alert"></div>
@@ -227,13 +230,14 @@ button{font-family:inherit}
         <button class="btn" id="bNext" type="button"></button>
         <div class="ctl2">
           <button class="link" id="bRestart" type="button">Start over</button>
+          <label class="speech"><input type="checkbox" id="autoNext" checked> <span id="autoTxt">Auto-next</span></label>
         </div>
         <div class="voicebar" id="voicebar">
-          <label class="speech"><input type="checkbox" id="speech"> Read aloud to me</label>
+          <label class="speech"><input type="checkbox" id="speech"> <span id="speechTxt">Read aloud to me</span></label>
           <select id="voiceSel" aria-label="Choose a voice"></select>
           <select id="rateSel" aria-label="Voice speed"><option value="0.88">Slower</option><option value="0.97" selected>Normal</option><option value="1.1">Faster</option></select>
         </div>
-        <div class="hint">Keyboard: Enter or the right arrow moves on.</div>
+        <div class="hint" id="hint">Keyboard: Enter or the right arrow moves on.</div>
       </div>
     </aside>
   </div>
@@ -247,13 +251,121 @@ const scroller = $('#scroller'), board = $('#board'), panel = $('#panel'), steps
 const bBack = $('#bBack'), bPlay = $('#bPlay'), bNext = $('#bNext');
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const STEPS = ['Build the house','Move the decimal outside','Move the decimal inside','Raise the Roof',
-  'Divide, Multiply, Subtract, Bring Down, Repeat','Remainder? Add a zero','Check it'];
-const PH = [['D','Divide'],['M','Multiply'],['S','Subtract'],['B','Bring down'],['R','Repeat']];
+/* ================= language tables ================= */
+const I18N = {
+en: {
+  title:'Dividing decimals', sub:'Build the house. Raise the roof.', walk:'Walkthrough', own:'Type your own problem', teach:'Teacher mode',
+  steps:'The steps', skip:'Whole-number divisor? Skip steps 1 and 2.',
+  lblDvd:'dividend (inside)', lblDvr:'divisor (outside)', go:'Go', surprise:'Surprise me',
+  back:'Back', play:'Play', pause:'Pause', next:'Next', cont:'Continue', answerFirst:'Answer first', restart:'Start over', autoNext:'Auto-next',
+  voice:'Read aloud to me', slow:'Slower', normal:'Normal', fast:'Faster', hint:'Keyboard: Enter or the right arrow moves on.',
+  stepWord:'Step', tip:'Tip:', wait:'Your turn! The lesson continues when you answer.', doIt:'Do it for me',
+  taps:(d, n) => `${d} of ${n} taps`, again:'Watch it again', another:'Try another problem', skipped:'Steps 1 and 2: skipped',
+  stepNames:['Build the house','Move the decimal outside','Move the decimal inside','Raise the Roof','Divide, Multiply, Subtract, Bring Down, Repeat','Remainder? Add a zero','Check it'],
+  chips:['Divide','Multiply','Subtract','Bring down','Repeat'],
+  tagDvr:'divisor', tagDvd:'dividend', tagQ:'quotient (the answer)', moves:n => `moves: ${n}`,
+  aDvrDot:'Decimal point in the divisor', aDdDot:'Decimal point in the dividend', aDigit:c => `Digit ${c} inside the house`, aZero:'Add a zero',
+  eFmt:'Enter numbers like 4.5 or 12.', eZero:"We can't divide by zero.", eDvd0:'The dividend must be more than 0.',
+  eDvrLen:'Divisor: 3 digits max, like 0.25.', eDvdLen:'Dividend: 4 digits max, like 12.5.',
+  eLong:"Doesn't end evenly within 3 extra decimal places. Try other numbers.",
+  sample:"Alright, let's raise the roof!",
+  place:n => `${n} place${n === 1 ? '' : 's'}`, time:n => `${n} time${n === 1 ? '' : 's'}`, zeros:n => `${n} zero${n === 1 ? '' : 's'}`,
+  welcome:(a, b, auto) => `Welcome! We'll use a house to divide decimals. Today: ${a} ÷ ${b}. ${auto ? 'Press Play or Next.' : "Press Next when you're ready."}`,
+  house:'Build the house. Divisor outside, dividend inside.', housePrompt:'Which number goes inside?',
+  houseFb:b => `We divide BY ${b}, so it stays outside.`, houseAfter:(a, b) => `${a} is the dividend. ${b} is the divisor.`,
+  s1say:b => `${b} has a decimal. Move it right until it's a whole number.`, s1tip:'Whole-number divisor? Skip steps 1 and 2.',
+  s1prompt:b => `How many places to make ${b} whole?`, s1fbLess:"Still not whole. Keep going.",
+  s1fbMore:(m, D) => `${I18N.en.place(m)} already makes ${D}. Stop there.`, s1after:(m, b, D) => `${I18N.en.place(m)}: ${b} becomes ${D}.`,
+  hopSay:m => m === 1 ? 'Tap the decimal to hop it right.' : `Tap the decimal ${m} times.`,
+  hopInstr1:m => `Tap the glowing decimal outside the house${m > 1 ? ' ' + m + ' times' : ''}.`,
+  hopInstr2:m => `Tap the glowing decimal inside the house${m > 1 ? ' ' + m + ' times' : ''}.`,
+  hop1After:(b, D, m) => `${b} became ${D}. Moves = ${m}.`,
+  s2say:m => `Same moves inside the house: ${m}.`, s2tip:'Out of digits? Add zeros: 4.5 ÷ 0.04 becomes 450 ÷ 4.',
+  hop2After:(a, sh, pad, D) => `${a} became ${sh}.${pad ? ' Added ' + I18N.en.zeros(pad) + '.' : ''} Now ${sh} ÷ ${D}.`,
+  skipSay:b => `${b} is already whole, so skip steps 1 and 2.`,
+  roofSay:'Raise the roof! Lift the decimal straight up.', roofInstr:'Tap the glowing decimal.', roofAfter:'The decimal is parked in the answer.',
+  preZero:(D, pv) => `${D} doesn't fit into ${pv}. Add a zero.`, zeroInstr:'Tap the dashed zero.', preZeroAfter:'Zero added.',
+  divFirst:(w, D, pl) => `Now divide like whole numbers: ${w} ÷ ${D}. Divide, Multiply, Subtract, Bring Down, Repeat.${pl ? ' Placeholder zeros go in the answer.' : ''}`,
+  divAgain:'Repeat. Divide.', divPrompt:(D, cc) => `How many times does ${D} go into ${cc}?`,
+  divFbBig:(o, D, x) => `${o} × ${D} = ${x}. Too big.`, divFbSmall:(o, D, x) => `${o} × ${D} = ${x}. There's room for more.`,
+  divAfter0:(D, cc, more) => `${D} doesn't fit into ${cc}. Write 0.${more ? ' Bring down the next digit.' : ''}`,
+  divAfter:(D, cc, q) => `${D} goes into ${cc} ${I18N.en.time(q)}. Write ${q}.`,
+  mulSay:q => `Multiply: ${q} × the divisor.`, mulFb:(q, D) => `${q} group${q === 1 ? '' : 's'} of ${D}. Try again.`,
+  mulAfter:(q, D, m) => `${q} × ${D} = ${m}. Write it below.`,
+  subSay:'Subtract.', subFb:(m, cc) => `Take ${m} away from ${cc}.`,
+  subAfter:(cc, m, n, none, rem) => `${cc} − ${m} = ${n}.${none ? ' Nothing left.' : ''}${rem ? ' That is the remainder.' : ''}`,
+  both:(q, D, m, cc, n, none, rem) => `Multiply: ${q} × ${D} = ${m}. Subtract: ${cc} − ${m} = ${n}.${none ? ' Nothing left.' : ''}${rem ? ' Remainder.' : ''}`,
+  bringSay:d => `Bring down the ${d}.`, bringAfter:n => `Now ${n}. Repeat!`,
+  remSay:n => `Remainder ${n}, no digits left. With decimals, we keep going.`, remPrompt:n => `Remainder ${n}, no digits left. Now what?`,
+  remOpts:n => [`Stop and write r${n}`, 'Add a zero to the end, inside the house', 'Move the decimal again'],
+  remFb0:'A remainder means there is more to divide.', remFb2:'The decimal stays on the roof.',
+  remAfter:'A zero at the end keeps the value and gives a new digit.',
+  zeroSay1:'Tap the dashed zero.', zeroSayN:n => `Remainder ${n}. Add another zero.`, zeroAfter:n => `Zero added and brought down. Now ${n}.`,
+  checkSay:q => `Remainder 0. Done! Answer: ${q}. Check: answer × divisor should equal the dividend.`,
+  checkFb:(qd, m) => `Count decimal places: ${qd} + ${m} = ${qd + m}.`,
+  checkAfter:(q, b, p) => `${q} × ${b} = ${p}, the dividend. It checks out!`,
+  finalSay:(a, b, q) => `${a} ÷ ${b} = ${q}. These steps work on any decimal division.`
+},
+es: {
+  title:'Dividir decimales', sub:'Construye la casa. Levanta el techo.', walk:'Ejemplo guiado', own:'Escribe tu problema', teach:'Modo docente',
+  steps:'Los pasos', skip:'¿Divisor entero? Salta los pasos 1 y 2.',
+  lblDvd:'dividendo (adentro)', lblDvr:'divisor (afuera)', go:'Ir', surprise:'Sorpréndeme',
+  back:'Atrás', play:'Reproducir', pause:'Pausa', next:'Siguiente', cont:'Continuar', answerFirst:'Responde primero', restart:'Reiniciar', autoNext:'Avance automático',
+  voice:'Leer en voz alta', slow:'Más lento', normal:'Normal', fast:'Más rápido', hint:'Teclado: Enter o la flecha derecha avanza.',
+  stepWord:'Paso', tip:'Consejo:', wait:'¡Tu turno! La lección sigue cuando respondas.', doIt:'Hazlo por mí',
+  taps:(d, n) => `${d} de ${n} toques`, again:'Verlo otra vez', another:'Otro problema', skipped:'Pasos 1 y 2: omitidos',
+  stepNames:['Construye la casa','Mueve el punto afuera','Mueve el punto adentro','Levanta el techo','Divide, Multiplica, Resta, Baja, Repite','¿Residuo? Agrega un cero','Comprueba'],
+  chips:['Divide','Multiplica','Resta','Baja','Repite'],
+  tagDvr:'divisor', tagDvd:'dividendo', tagQ:'cociente (la respuesta)', moves:n => `movimientos: ${n}`,
+  aDvrDot:'Punto decimal del divisor', aDdDot:'Punto decimal del dividendo', aDigit:c => `Dígito ${c} adentro de la casa`, aZero:'Agregar un cero',
+  eFmt:'Escribe números como 4.5 o 12.', eZero:'No se puede dividir entre cero.', eDvd0:'El dividendo debe ser mayor que 0.',
+  eDvrLen:'Divisor: máximo 3 dígitos, como 0.25.', eDvdLen:'Dividendo: máximo 4 dígitos, como 12.5.',
+  eLong:'No termina exacto con 3 decimales extra. Prueba otros números.',
+  sample:'¡Muy bien, levantemos el techo!',
+  place:n => `${n} ${n === 1 ? 'lugar' : 'lugares'}`, time:n => `${n} ${n === 1 ? 'vez' : 'veces'}`, zeros:n => `${n} ${n === 1 ? 'cero' : 'ceros'}`,
+  welcome:(a, b, auto) => `¡Bienvenidos! Usaremos una casa para dividir decimales. Hoy: ${a} ÷ ${b}. ${auto ? 'Oprime Reproducir o Siguiente.' : 'Oprime Siguiente para empezar.'}`,
+  house:'Construye la casa. El divisor va afuera y el dividendo adentro.', housePrompt:'¿Qué número va adentro?',
+  houseFb:b => `Dividimos entre ${b}, así que se queda afuera.`, houseAfter:(a, b) => `${a} es el dividendo. ${b} es el divisor.`,
+  s1say:b => `${b} tiene punto decimal. Muévelo a la derecha hasta que sea un número entero.`, s1tip:'¿Divisor entero? Salta los pasos 1 y 2.',
+  s1prompt:b => `¿Cuántos lugares para que ${b} sea entero?`, s1fbLess:'Todavía no es entero. Sigue.',
+  s1fbMore:(m, D) => `${I18N.es.place(m)} ya da ${D}. Ahí para.`, s1after:(m, b, D) => `${I18N.es.place(m)}: ${b} pasa a ${D}.`,
+  hopSay:m => m === 1 ? 'Toca el punto para brincar a la derecha.' : `Toca el punto ${m} veces.`,
+  hopInstr1:m => `Toca el punto que brilla afuera de la casa${m > 1 ? ' ' + m + ' veces' : ''}.`,
+  hopInstr2:m => `Toca el punto que brilla adentro de la casa${m > 1 ? ' ' + m + ' veces' : ''}.`,
+  hop1After:(b, D, m) => `${b} pasó a ${D}. Movimientos = ${m}.`,
+  s2say:m => `Lo mismo adentro de la casa: ${I18N.es.time(m)}.`, s2tip:'¿Faltan dígitos? Agrega ceros: 4.5 ÷ 0.04 pasa a 450 ÷ 4.',
+  hop2After:(a, sh, pad, D) => `${a} pasó a ${sh}.${pad ? ' Agregamos ' + I18N.es.zeros(pad) + '.' : ''} Ahora ${sh} ÷ ${D}.`,
+  skipSay:b => `${b} ya es entero. Saltamos los pasos 1 y 2.`,
+  roofSay:'¡Levanta el techo! Sube el punto en línea recta.', roofInstr:'Toca el punto que brilla.', roofAfter:'El punto queda en la respuesta.',
+  preZero:(D, pv) => `${D} no cabe en ${pv}. Agrega un cero.`, zeroInstr:'Toca el cero punteado.', preZeroAfter:'Cero agregado.',
+  divFirst:(w, D, pl) => `Ahora dividimos como números enteros: ${w} ÷ ${D}. Divide, Multiplica, Resta, Baja, Repite.${pl ? ' Los ceros de relleno van en la respuesta.' : ''}`,
+  divAgain:'Repite. Divide.', divPrompt:(D, cc) => `¿Cuántas veces cabe ${D} en ${cc}?`,
+  divFbBig:(o, D, x) => `${o} × ${D} = ${x}. Es demasiado.`, divFbSmall:(o, D, x) => `${o} × ${D} = ${x}. Todavía cabe más.`,
+  divAfter0:(D, cc, more) => `${D} no cabe en ${cc}. Escribe 0.${more ? ' Baja el siguiente dígito.' : ''}`,
+  divAfter:(D, cc, q) => `${D} cabe ${I18N.es.time(q)} en ${cc}. Escribe ${q}.`,
+  mulSay:q => `Multiplica: ${q} × el divisor.`, mulFb:(q, D) => `${q} ${q === 1 ? 'grupo' : 'grupos'} de ${D}. Inténtalo otra vez.`,
+  mulAfter:(q, D, m) => `${q} × ${D} = ${m}. Escríbelo abajo.`,
+  subSay:'Resta.', subFb:(m, cc) => `Quita ${m} de ${cc}.`,
+  subAfter:(cc, m, n, none, rem) => `${cc} − ${m} = ${n}.${none ? ' No sobra nada.' : ''}${rem ? ' Ese es el residuo.' : ''}`,
+  both:(q, D, m, cc, n, none, rem) => `Multiplica: ${q} × ${D} = ${m}. Resta: ${cc} − ${m} = ${n}.${none ? ' No sobra nada.' : ''}${rem ? ' Residuo.' : ''}`,
+  bringSay:d => `Baja el ${d}.`, bringAfter:n => `Ahora ${n}. ¡Repite!`,
+  remSay:n => `Residuo ${n} y no quedan dígitos. Con decimales, seguimos.`, remPrompt:n => `Residuo ${n}, sin dígitos. ¿Y ahora?`,
+  remOpts:n => [`Paro y escribo r${n}`, 'Agrego un cero al final, adentro de la casa', 'Muevo el punto otra vez'],
+  remFb0:'Un residuo significa que todavía se puede dividir.', remFb2:'El punto se queda en el techo.',
+  remAfter:'Un cero al final no cambia el valor y da un dígito nuevo.',
+  zeroSay1:'Toca el cero punteado.', zeroSayN:n => `Residuo ${n}. Agrega otro cero.`, zeroAfter:n => `Cero agregado y bajado. Ahora ${n}.`,
+  checkSay:q => `Residuo 0. ¡Terminamos! Respuesta: ${q}. Comprueba: respuesta × divisor debe dar el dividendo.`,
+  checkFb:(qd, m) => `Cuenta los decimales: ${qd} + ${m} = ${qd + m}.`,
+  checkAfter:(q, b, p) => `${q} × ${b} = ${p}, el dividendo. ¡Comprobado!`,
+  finalSay:(a, b, q) => `${a} ÷ ${b} = ${q}. Estos pasos sirven para cualquier división de decimales.`
+}
+};
+let lang = /[?&]lang=es\b/.test(location.search) ? 'es' : 'en';
+const T = (k, ...a) => { const v = I18N[lang][k]; return typeof v === 'function' ? v(...a) : v; };
 
-/* ---------- number helpers ---------- */
+/* ================= number helpers ================= */
 function parseNum(str) {
-  const t = String(str).trim();
+  const t = String(str).trim().replace(',', '.');
   if (!/^\d*\.?\d*$/.test(t) || t === '' || t === '.') return null;
   let [a, b] = t.split('.'); b = b || '';
   a = a.replace(/^0+(?=\d)/, ''); if (a === '') a = '0';
@@ -282,27 +394,24 @@ const pick3 = (c, extras) => {
   while (s.length < 3) s.push(Math.max(...s) + 1);
   return s.sort((a, b) => a - b);
 };
-const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
 
-/* ---------- lesson builder (any problem) ---------- */
+/* ================= lesson builder (any problem) ================= */
 function buildLesson(dvdStr, dvrStr) {
   const dvd = parseNum(dvdStr), dvr = parseNum(dvrStr);
-  if (!dvd || !dvr) return {error:'Enter numbers like 4.5 or 12: digits and at most one decimal point.'};
-  if (dvr.digits.every(c => c === '0')) return {error:"We can't divide by zero. Try a different divisor."};
-  if (dvd.digits.every(c => c === '0')) return {error:'Try a dividend bigger than 0.'};
-  if (dvr.digits.length > 3) return {error:'Keep the divisor to 3 digits or fewer, like 0.25 or 1.2.'};
-  if (dvd.digits.length > 4) return {error:'Keep the dividend to 4 digits or fewer, like 12.5 or 0.125.'};
+  if (!dvd || !dvr) return {error:T('eFmt')};
+  if (dvr.digits.every(c => c === '0')) return {error:T('eZero')};
+  if (dvd.digits.every(c => c === '0')) return {error:T('eDvd0')};
+  if (dvr.digits.length > 3) return {error:T('eDvrLen')};
+  if (dvd.digits.length > 4) return {error:T('eDvdLen')};
   try { return makeBeats(dvd, dvr); }
-  catch (e) { if (e && e.code === 'long') return {error:e.message}; throw e; }
+  catch (e) { if (e && e.code === 'long') return {error:T('eLong')}; throw e; }
 }
 
 function makeBeats(dvd, dvr) {
+  const auto = App.autoNext;
   const B = [];
   const add = b => (B.push(b), b);
-  const tooLong = () => {
-    const e = new Error("That one doesn't come out evenly within 3 extra decimal places, so it's too long for this lesson. Try different numbers.");
-    e.code = 'long'; throw e;
-  };
+  const tooLong = () => { const e = new Error('long'); e.code = 'long'; throw e; };
   const nd = dvr.digits.length, m = nd - dvr.dot, D = parseInt(dvr.digits.join(''), 10);
   const typed = dvd.digits.map(Number), L = typed.length, b0 = dvd.dot, bS = b0 + m;
   const pad = Math.max(0, bS - L);
@@ -316,56 +425,48 @@ function makeBeats(dvd, dvr) {
   const dvIds = Array.from({length:nd}, (_, k) => 'dv-' + k);
 
   /* Step 0 */
-  add({step:0, say:`Hey, welcome! Today we're dividing with decimals, and we'll use a house to keep every digit in its place. Our problem is ${dvdS} ÷ ${dvrS}. Hit Play to watch, or Next to go at your own pace.`});
-  add({step:0, say:"Okay, first we build the house. The number we're dividing BY goes outside, that's the divisor. The number being divided goes inside, that's the dividend.",
+  add({step:0, say:T('welcome', dvdS, dvrS, auto)});
+  add({step:0, say:T('house'),
     show:s => { s.house = true; },
-    cp:{type:'choice', prompt:'Which number goes inside the house?', options:[dvdS, dvrS], correct:0,
-      fb:{1:`${dvrS} comes after the ÷ sign. We're dividing by it, so it waits outside.`}},
+    cp:{type:'choice', prompt:T('housePrompt'), options:[dvdS, dvrS], correct:0, fb:{1:T('houseFb', dvrS)}},
     done:s => { s.divShow = s.ddShow = s.tags = true; },
-    after:`${dvdS} is the dividend (inside). ${dvrS} is the divisor (outside).`});
+    after:T('houseAfter', dvdS, dvrS)});
 
   if (m > 0) {
     /* Step 1 */
     const pOpts = uniq([m, m + 1, Math.max(0, m - 1)]).sort((a, b) => a - b);
     while (pOpts.length < 3) pOpts.push(pOpts[pOpts.length - 1] + 1);
     const pFb = {};
-    pOpts.forEach((o, ix) => { if (o !== m) pFb[ix] = o < m
-      ? `After ${plural(o, 'place')}, ${dvrS} still isn't a whole number. Keep going.`
-      : `${plural(m, 'place')} already makes ${D}, which is a whole number. Stop there.`; });
-    add({step:1, say:`Look outside the house. The divisor, ${dvrS}, has a decimal in it. We want a whole number, so we move that decimal to the right, right up next to the house.`,
-      tip:"If the divisor is already a whole number, skip steps 1 and 2 and go straight to Raise the Roof.",
+    pOpts.forEach((o, ix) => { if (o !== m) pFb[ix] = o < m ? T('s1fbLess') : T('s1fbMore', m, D); });
+    add({step:1, say:T('s1say', dvrS), tip:T('s1tip'),
       show:s => { s.tags = false; s.focus = ['dot-dv'].concat(dvIds); },
-      cp:{type:'choice', prompt:`How many places does the decimal move to turn ${dvrS} into a whole number?`,
-        options:pOpts.map(o => plural(o, 'place')), correct:pOpts.indexOf(m), fb:pFb},
-      after:`${plural(m, 'place')}. ${dvrS} becomes ${D}.`});
-    add({step:1, say: m === 1 ? "Your turn! Tap the decimal and hop it one place to the right."
-                              : `Your turn! Tap the decimal ${m} times, one hop to the right each time.`,
+      cp:{type:'choice', prompt:T('s1prompt', dvrS), options:pOpts.map(o => T('place', o)), correct:pOpts.indexOf(m), fb:pFb},
+      after:T('s1after', m, dvrS, D)});
+    add({step:1, say:T('hopSay', m),
       show:s => { s.target = 'dot-dv'; },
-      cp:{type:'tap', taps:m, instr:`Tap the glowing decimal outside the house${m > 1 ? ' ' + m + ' times' : ''}.`,
+      cp:{type:'tap', taps:m, instr:T('hopInstr1', m),
         partial:(s, k) => { s.dvDot = dvr.dot + k; if (k > 0) { s.moves = k; s.tally = true; } }},
       done:s => { s.dvDot = nd; s.dvDimN = dvrLead; s.moves = m; s.tally = true; },
-      after:`${dvrS} became ${D}. We moved ${plural(m, 'time')}, so: moves = ${m}.`});
+      after:T('hop1After', dvrS, D, m)});
 
     /* Step 2 */
-    add({step:2, say:`Here's the rule: whatever happens outside the house happens inside the house. We moved ${plural(m, 'time')}, so we move the decimal inside ${plural(m, 'time')}, too.`,
-      tip:"Run out of digits? Add zeros to hold the places. For 4.5 ÷ 0.04 you move twice, so 4.5 becomes 450.",
+    add({step:2, say:T('s2say', m), tip:T('s2tip'),
       show:s => { s.target = 'dot-dd'; },
-      cp:{type:'tap', taps:m, instr:`Tap the glowing decimal inside the house${m > 1 ? ' ' + m + ' times' : ''}.`,
+      cp:{type:'tap', taps:m, instr:T('hopInstr2', m),
         partial:(s, k) => { s.ddDot = b0 + k; s.visible = Math.max(L, b0 + k); }},
       done:s => { s.ddDot = bS; s.visible = L2; s.dimLead = dimLead; },
-      after:`${dvdS} became ${shiftedS}.` + (pad ? ` We added ${plural(pad, 'zero')} to hold the places.` : '') + ` The problem is now ${shiftedS} ÷ ${D}.`});
+      after:T('hop2After', dvdS, shiftedS, pad, D)});
   } else {
-    add({step:1, label:'Steps 1 and 2: skipped',
-      say:`The divisor, ${dvrS}, is already a whole number, so we skip steps 1 and 2 and go straight to Raise the Roof.`,
+    add({step:1, label:T('skipped'), say:T('skipSay', dvrS),
       show:s => { s.tags = false; s.focus = dvIds; }});
   }
 
   /* Step 3 */
-  add({step:3, say:"Now, raise the roof! Take that decimal and lift it straight up into the answer space.",
+  add({step:3, say:T('roofSay'),
     show:s => { s.qtag = true; s.target = 'dot-dd'; },
-    cp:{type:'tap', instr:'Tap the glowing decimal to lift it up.'},
+    cp:{type:'tap', instr:T('roofInstr')},
     done:s => { s.raised = true; },
-    after:"Roof raised! Every digit to the right of the decimal will be a decimal place in the answer."});
+    after:T('roofAfter')});
 
   /* where does the dividing start? */
   let s0 = f, val = dig(f);
@@ -378,15 +479,14 @@ function makeBeats(dvd, dvr) {
   let vis = L2, A = 0, zeroTaught = false;
   const ddIds = (a, b) => { const r = []; for (let k = a; k <= b; k++) r.push('dd-' + k); return r; };
 
-  /* zeros needed before the first digit fits */
   while (vis <= s0) {
     const slot = vis, pv = parseInt(Array.from({length:slot - f}, (_, k) => dig(f + k)).join('') || '0', 10);
     if (++A > 3) tooLong();
-    add({step:5, say:`${D} doesn't fit into ${pv}, so we add a zero to the end of the number inside the house.`,
+    add({step:5, say:T('preZero', D, pv),
       show:s => { s.qtag = false; s.ghost = slot; s.target = 'ghost0'; s.hl = ddIds(f, slot - 1); },
-      cp:{type:'tap', instr:'Tap the dashed zero to add it.'},
+      cp:{type:'tap', instr:T('zeroInstr')},
       done:s => { s.visible = slot + 1; s.ghost = null; },
-      after:"A zero joined the end of the number inside the house."});
+      after:T('preZeroAfter')});
     vis++;
   }
 
@@ -405,27 +505,19 @@ function makeBeats(dvd, dvr) {
     const rid = rowId, cs = curSlots.slice(), ci = i, cc = cur;
     const idsCur = cs.map(sl => rid == null ? 'dd-' + sl : `w-${rid}-${sl}`);
 
-    /* Divide */
     const dOpts = (q - 1 < 0 ? [q, q + 1, q + 2] : q + 1 > 9 ? [q, q - 1, q - 2] : [q, q + 1, q - 1]).sort((a, b) => a - b);
     const dFb = {};
-    dOpts.forEach((o, ix) => { if (o !== q) dFb[ix] = o * D > cc
-      ? `${o} × ${D} = ${o * D}, which is more than ${cc}. Try a smaller number.`
-      : `${o} × ${D} = ${o * D}, so there's room for more. Try a bigger number.`; });
+    dOpts.forEach((o, ix) => { if (o !== q) dFb[ix] = o * D > cc ? T('divFbBig', o, D, o * D) : T('divFbSmall', o, D, o * D); });
     const more0 = ci < vis - 1;
     add({step:4,
-      say: r === 0
-        ? `Alright, now we divide like it's a whole number: ${wholeS} ÷ ${D}. We use the same five moves over and over: Divide, Multiply, Subtract, Bring Down, Repeat.`
-          + (pl.length ? ` ${D} is too big for the first digits, so we write ${pl.length > 1 ? '0s' : 'a 0'} in the answer as placeholders.` : '')
-        : "Repeat! Back to Divide.",
+      say: r === 0 ? T('divFirst', wholeS, D, pl.length > 0) : T('divAgain'),
       show:s => {
         s.phase = r === 0 ? ['D'] : ['R', 'D']; s.hl = idsCur;
         if (r === 0) { s.qtag = false; s.tally = false; s.loop = true; pl.forEach(j => { s.quot[j] = 0; }); }
       },
-      cp:{type:'choice', prompt:`How many times does ${D} go into ${cc}?`, options:dOpts.map(String), correct:dOpts.indexOf(q), fb:dFb},
+      cp:{type:'choice', prompt:T('divPrompt', D, cc), options:dOpts.map(String), correct:dOpts.indexOf(q), fb:dFb},
       done:s => { s.quot[ci] = q; },
-      after: q === 0
-        ? `${D} doesn't fit into ${cc}, so it goes in 0 times. Write 0 in the answer${more0 ? ' and bring down the next digit.' : '.'}`
-        : `${D} goes into ${cc} ${plural(q, 'time')}. Write ${q} above the last digit we used.`});
+      after: q === 0 ? T('divAfter0', D, cc, more0) : T('divAfter', D, cc, q)});
     qd[ci] = q;
 
     let newRow = rid, newSlots = cs;
@@ -434,24 +526,24 @@ function makeBeats(dvd, dvr) {
       const mkM = () => ({id:'m' + r, digits:[...ms].map((ch, k) => ({slot:mstart + k, ch})), minus:mstart - 1, line:{from:mstart, to:ci}});
       const mkD = () => ({id:'d' + r, digits:[...rs].map((ch, k) => ({slot:rst + k, ch}))});
       const mIds = [...ms].map((_, k) => `w-m${r}-${mstart + k}`);
-      const remNote = (nrem === 0 && more0 ? ' Nothing is left over.' : '') + (nrem > 0 && !more0 ? ' That is our remainder.' : '');
+      const none = nrem === 0 && more0, rem = nrem > 0 && !more0;
       if (r < 2) {
         const mOpts = pick3(mult, [q + D, cc, mult + 1, mult * 2]);
-        add({step:4, say:`Next, multiply. Take that ${q} and multiply it by the divisor.`,
+        add({step:4, say:T('mulSay', q),
           show:s => { s.phase = ['M']; s.hl = ['q-' + ci]; },
           cp:{type:'choice', prompt:`${q} × ${D} = ?`, options:mOpts.map(String), correct:mOpts.indexOf(mult),
-            fb:Object.fromEntries(mOpts.map((o, ix) => [ix, `${q} × ${D} means ${plural(q, 'group')} of ${D}. Count it again.`]).filter((_, ix) => mOpts[ix] !== mult))},
+            fb:Object.fromEntries(mOpts.map((o, ix) => [ix, T('mulFb', q, D)]).filter((_, ix) => mOpts[ix] !== mult))},
           done:s => { s.work.push(mkM()); },
-          after:`${q} × ${D} = ${mult}. Write it underneath, lined up on the right.`});
+          after:T('mulAfter', q, D, mult)});
         const sOpts = pick3(nrem, [nrem + 1, cc + mult, mult, cc]);
-        add({step:4, say:"Now subtract. Take that product away from the number right above it.",
+        add({step:4, say:T('subSay'),
           show:s => { s.phase = ['S']; s.hl = mIds; },
           cp:{type:'choice', prompt:`${cc} − ${mult} = ?`, options:sOpts.map(String), correct:sOpts.indexOf(nrem),
-            fb:Object.fromEntries(sOpts.map((o, ix) => [ix, `Take ${mult} away from ${cc}. What's left?`]).filter((_, ix) => sOpts[ix] !== nrem))},
+            fb:Object.fromEntries(sOpts.map((o, ix) => [ix, T('subFb', mult, cc)]).filter((_, ix) => sOpts[ix] !== nrem))},
           done:s => { s.work.push(mkD()); },
-          after:`${cc} − ${mult} = ${nrem}.` + remNote});
+          after:T('subAfter', cc, mult, nrem, none, rem)});
       } else {
-        add({step:4, say:`Multiply: ${q} × ${D} = ${mult}. Subtract: ${cc} − ${mult} = ${nrem}.` + remNote,
+        add({step:4, say:T('both', q, D, mult, cc, nrem, none, rem),
           show:s => { s.phase = ['M', 'S']; s.work.push(mkM()); s.work.push(mkD()); }});
       }
       newRow = 'd' + r;
@@ -464,11 +556,11 @@ function makeBeats(dvd, dvr) {
 
     if (more) {
       const nextCur = nrem * 10 + dig(ci + 1);
-      add({step:4, say:`Bring down the next digit, which is ${dig(ci + 1)}.`,
+      add({step:4, say:T('bringSay', dig(ci + 1)),
         show:s => { s.phase = ['B']; s.target = 'dd-' + (ci + 1); },
-        cp:{type:'tap', instr:'Tap the glowing digit to bring it down.'},
+        cp:{type:'tap', instr:T('roofInstr')},
         done:s => bring(s, nr, ci + 1, false),
-        after:`Now we have ${nextCur}. Repeat!`});
+        after:T('bringAfter', nextCur)});
       cur = nextCur; curSlots = ns.concat(ci + 1); rowId = nr; i = ci + 1;
     } else {
       const slotIdx = vis, firstZero = !zeroTaught;
@@ -476,19 +568,16 @@ function makeBeats(dvd, dvr) {
       const remIds = ns.map(sl => `w-${nr}-${sl}`);
       if (firstZero) {
         zeroTaught = true;
-        add({step:5, say:`Remainder ${nrem}, but there are no digits left to bring down. With decimals, that's not the end.`,
+        add({step:5, say:T('remSay', nrem),
           show:s => { s.hl = remIds; },
-          cp:{type:'choice', prompt:`There's a remainder of ${nrem} and no digits left. What now?`,
-            options:['Stop and write r' + nrem, 'Add a zero to the end of the number inside the house', 'Move the decimal again'], correct:1,
-            fb:{0:"A remainder means there's more to divide. With decimals, we can keep going.", 2:"The decimal is already up on the roof. It stays put."}},
-          after:"A zero at the end of a decimal doesn't change its value, but it gives us a new digit to bring down."});
+          cp:{type:'choice', prompt:T('remPrompt', nrem), options:T('remOpts', nrem), correct:1, fb:{0:T('remFb0'), 2:T('remFb2')}},
+          after:T('remAfter')});
       }
-      add({step:5, say: firstZero ? "Tap the dashed zero to add it to the end of the number inside the house."
-                                  : `Another remainder, ${nrem}. Add another zero.`,
+      add({step:5, say: firstZero ? T('zeroSay1') : T('zeroSayN', nrem),
         show:s => { s.ghost = slotIdx; s.target = 'ghost0'; s.hl = remIds; },
-        cp:{type:'tap', instr:'Tap the dashed zero.'},
+        cp:{type:'tap', instr:T('zeroInstr')},
         done:s => { s.visible = slotIdx + 1; s.ghost = null; bring(s, nr, slotIdx, true); },
-        after:`The zero joined the number inside the house and dropped down. Now we have ${nrem * 10}. Repeat!`});
+        after:T('zeroAfter', nrem * 10)});
       vis++;
       cur = nrem * 10; curSlots = ns.concat(slotIdx); rowId = nr; i = slotIdx;
     }
@@ -501,25 +590,23 @@ function makeBeats(dvd, dvr) {
   const qStr = fmtDigits(qFull, bS);
   const qIds = Array.from({length:N}, (_, j) => 'q-' + j);
 
-  /* Step 6 */
   const QI = parseInt(qFull.join(''), 10), qDec = N - bS, prodDec = qDec + m, prod = QI * D;
   const prodStr = fmtDecInt(prod, prodDec);
   const bigger = fmtDecInt(prodDec > 0 ? prod : prod * 10, Math.max(0, prodDec - 1));
   const smaller = fmtDecInt(prod, prodDec + 1);
   const cOpts = uniq([prodStr, bigger, smaller]).sort((a, b) => parseFloat(a) - parseFloat(b));
   const cFb = {};
-  cOpts.forEach((o, ix) => { if (o !== prodStr) cFb[ix] = `Count the decimal places: ${qDec} in ${qStr} plus ${m} in ${dvrS} makes ${qDec + m} in the product. Try again.`; });
-  add({step:6, say:`The remainder is 0, so we're done dividing! The answer is ${qStr}. Now check it: multiply the answer by the original divisor. You should get the original dividend.`,
+  cOpts.forEach((o, ix) => { if (o !== prodStr) cFb[ix] = T('checkFb', qDec, m); });
+  add({step:6, say:T('checkSay', qStr),
     show:s => { s.loop = false; s.hl = qIds; },
     cp:{type:'choice', prompt:`${qStr} × ${dvrS} = ?`, options:cOpts, correct:cOpts.indexOf(prodStr), fb:cFb},
-    after:`${qStr} × ${dvrS} = ${prodStr}, the dividend we started with. It checks out!`});
-  add({step:6, say:`So ${dvdS} ÷ ${dvrS} = ${qStr}. You built the house, ${m > 0 ? 'moved the decimal out and in, ' : ''}raised the roof, divided${A > 0 ? ', added zeros for the remainder' : ''}, and checked. These steps work on any decimal division problem.`,
-    show:s => { s.hl = qIds; }});
+    after:T('checkAfter', qStr, dvrS, prodStr)});
+  add({step:6, say:T('finalSay', dvdS, dvrS, qStr), show:s => { s.hl = qIds; }});
 
   return {B, P:{dvd, dvr, dvdS, dvrS, nd, m, D, L, L2, N, b0, bS}};
 }
 
-/* ---------- app state ---------- */
+/* ================= app state ================= */
 let P, B, firstIdx;
 const init = () => ({
   house:false, tags:false, divShow:false, ddShow:false, dvDot:P.dvr.dot, dvDimN:0, ddDot:P.b0, dimLead:0, raised:false,
@@ -527,7 +614,7 @@ const init = () => ({
   quot:Array(P.N).fill(null), work:[], loop:false,
   focus:[], hl:[], target:null, phase:null
 });
-const App = {countMs:0, i:0, solved:[], wrong:[], msg:[], taps:[], furthest:0, playing:false, speech:false, started:false, unlock:false, token:0, autoT:0, shake:null};
+const App = {autoNext:true, mode:'walk', countMs:0, i:0, solved:[], wrong:[], msg:[], taps:[], furthest:0, playing:false, speech:false, started:false, unlock:false, token:0, autoT:0, shake:null};
 let prev = null;
 
 function stateAt(i, solvedCur) {
@@ -543,7 +630,7 @@ function stateAt(i, solvedCur) {
   return s;
 }
 
-/* ---------- geometry + layout ---------- */
+/* ================= geometry + layout ================= */
 function geo() {
   const avail = Math.max(300, (scroller.clientWidth || 640) - 16);
   const tot = 1.1 + .85 * P.nd + P.N;
@@ -564,19 +651,19 @@ function layout(s, g) {
   if (s.divShow) {
     P.dvr.digits.forEach((ch, k) => out.push({id:'dv-' + k, cls:'dg dv' + (k < s.dvDimN ? ' dim' : '') + mark('dv-' + k),
       text:ch, x:g.vx(k), y:g.ddY, w:g.dw, h:H, fs:.74 * W}));
-    out.push({id:'dot-dv', btn:1, label:'Decimal point in the divisor', cls:'dot' + (s.dvDot === P.nd ? ' rest' : '') + mark('dot-dv'),
+    out.push({id:'dot-dv', btn:1, label:T('aDvrDot'), cls:'dot' + (s.dvDot === P.nd ? ' rest' : '') + mark('dot-dv'),
       x:g.divX0 + s.dvDot * g.dw, y:g.ddY + dotY, w:dotS, h:dotS});
   }
   if (s.ddShow) {
     for (let j = 0; j < s.visible; j++) {
       const ch = j < P.L ? String(P.dvd.digits[j]) : '0';
-      out.push({id:'dd-' + j, btn:1, label:'Digit ' + ch + ' inside the house',
+      out.push({id:'dd-' + j, btn:1, label:T('aDigit', ch),
         cls:'dg dd' + (j >= P.L ? ' added' : '') + (j < s.dimLead ? ' dim' : '') + (s.used[j] ? ' used' : '') + mark('dd-' + j),
         text:ch, x:g.sx(j), y:g.ddY, w:W, h:H, fs:.74 * W});
     }
-    if (s.ghost != null) out.push({id:'ghost0', btn:1, label:'Add a zero', cls:'dg ghostd' + (s.target === 'ghost0' ? ' target' : ''),
+    if (s.ghost != null) out.push({id:'ghost0', btn:1, label:T('aZero'), cls:'dg ghostd' + (s.target === 'ghost0' ? ' target' : ''),
       text:'0', x:g.sx(s.ghost), y:g.ddY, w:W * .82, h:H * .82, fs:.6 * W});
-    out.push({id:'dot-dd', btn:1, label:'Decimal point in the dividend', cls:'dot' + mark('dot-dd'),
+    out.push({id:'dot-dd', btn:1, label:T('aDdDot'), cls:'dot' + mark('dot-dd'),
       x:g.ddX0 + s.ddDot * W, y:(s.raised ? g.qy : g.ddY) + dotY, w:dotS, h:dotS});
     if (s.raised) out.push({id:'dot-ghost', cls:'dot ghost', x:g.ddX0 + s.ddDot * W, y:g.ddY + dotY, w:dotS * .8, h:dotS * .8});
   }
@@ -594,15 +681,15 @@ function layout(s, g) {
       w:(r.line.to - r.line.from + 1) * W - .2 * W, h:Math.max(3, .05 * W)});
   });
   if (s.tags) {
-    out.push({id:'tag-dvs', cls:'tag', text:'divisor', x:g.divX0 + P.nd * g.dw / 2, y:g.ddY + .8 * H, w:1.7 * W, h:.5 * W});
-    out.push({id:'tag-dds', cls:'tag', text:'dividend', x:g.ddX0 + P.L * W / 2, y:g.ddY + .8 * H, w:1.9 * W, h:.5 * W});
+    out.push({id:'tag-dvs', cls:'tag', text:T('tagDvr'), x:g.divX0 + P.nd * g.dw / 2, y:g.ddY + .8 * H, w:1.9 * W, h:.5 * W});
+    out.push({id:'tag-dds', cls:'tag', text:T('tagDvd'), x:g.ddX0 + P.L * W / 2, y:g.ddY + .8 * H, w:2.1 * W, h:.5 * W});
   }
-  if (s.qtag) out.push({id:'tag-q', cls:'tag', text:'quotient (the answer)', x:g.ddX0 + P.N * W / 2, y:.24 * W, w:3.3 * W, h:.45 * W});
-  if (s.tally) out.push({id:'tally', cls:'tally', text:'moves: ' + s.moves, x:g.divX0 + P.nd * g.dw / 2, y:g.qy, w:2.1 * W, h:.56 * W, fs:.3 * W});
+  if (s.qtag) out.push({id:'tag-q', cls:'tag', text:T('tagQ'), x:g.ddX0 + P.N * W / 2, y:.24 * W, w:3.6 * W, h:.45 * W});
+  if (s.tally) out.push({id:'tally', cls:'tally', text:T('moves', s.moves), x:g.divX0 + P.nd * g.dw / 2, y:g.qy, w:2.3 * W, h:.56 * W, fs:.3 * W});
   return out;
 }
 
-/* ---------- board painting ---------- */
+/* ================= board painting ================= */
 const NS = 'http://www.w3.org/2000/svg';
 const svg = document.createElementNS(NS, 'svg');
 svg.setAttribute('class', 'house'); svg.setAttribute('aria-hidden', 'true');
@@ -676,18 +763,25 @@ function paintBoard(s) {
   prev = s;
 }
 
-/* ---------- panel / controls / rail ---------- */
-STEPS.forEach((name, k) => {
+/* ================= panel / controls / rail ================= */
+const SVG_BACK = '<svg viewBox="0 0 16 16"><path d="M11 2v12L4 8z"/></svg>';
+const SVG_NEXT = '<svg viewBox="0 0 16 16"><path d="M5 2v12l7-6z"/></svg>';
+const SVG_PLAY = '<svg viewBox="0 0 16 16"><path d="M4 2v12l10-6z"/></svg>';
+const SVG_PAUSE = '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>';
+
+for (let k = 0; k < 7; k++) {
   const li = document.createElement('li');
-  li.innerHTML = `<button class="stepbtn" type="button" data-step="${k}"><span class="num">${k}</span><span>${name}</span></button>`;
+  li.innerHTML = `<button class="stepbtn" type="button" data-step="${k}"><span class="num">${k}</span><span class="nm"></span></button>`;
   stepsEl.appendChild(li);
-});
+}
 
 function paintRail(b) {
   const seen = new Set();
   for (let k = 0; k <= App.furthest; k++) seen.add(B[k].step);
+  const names = T('stepNames');
   stepsEl.querySelectorAll('.stepbtn').forEach(btn => {
     const k = +btn.dataset.step;
+    btn.querySelector('.nm').textContent = names[k];
     btn.classList.toggle('current', k === b.step);
     btn.classList.toggle('done', seen.has(k) && k !== b.step);
     btn.querySelector('.num').textContent = (seen.has(k) && k !== b.step) ? '✓' : k;
@@ -698,11 +792,12 @@ function paintRail(b) {
 
 function paintPanel(b, s) {
   const solved = !b.cp || App.solved[App.i];
-  let h = `<div class="stepline">${b.label || `Step ${b.step}: ${STEPS[b.step]}`}</div>`;
-  if (s.loop) h += '<div class="loop" aria-label="The five moves">' +
-    PH.map(([k, n]) => `<span class="chip${(s.phase || []).includes(k) ? ' on' : ''}">${n}</span>`).join('') + '</div>';
+  const names = T('stepNames'), chips = T('chips');
+  let h = `<div class="stepline">${b.label || `${T('stepWord')} ${b.step}: ${names[b.step]}`}</div>`;
+  if (s.loop) h += '<div class="loop">' +
+    ['D','M','S','B','R'].map((k, ix) => `<span class="chip${(s.phase || []).includes(k) ? ' on' : ''}">${chips[ix]}</span>`).join('') + '</div>';
   h += `<p class="say">${b.say}</p>`;
-  if (b.tip) h += `<div class="tip"><b>Tip:</b> ${b.tip}</div>`;
+  if (b.tip) h += `<div class="tip"><b>${T('tip')}</b> ${b.tip}</div>`;
   if (b.cp) {
     const cp = b.cp;
     if (cp.type === 'choice') {
@@ -716,26 +811,24 @@ function paintPanel(b, s) {
     } else {
       const need = cp.taps || 1, done = App.taps[App.i] || 0;
       h += `<div class="q"><div class="qp">${cp.instr}</div>` +
-        (need > 1 && !solved ? `<div class="count">${done} of ${need} taps</div>` : '') +
-        (solved ? '' : '<button class="link" type="button" data-act="showme">Do it for me</button>') + '</div>';
+        (need > 1 && !solved ? `<div class="count">${T('taps', done, need)}</div>` : '') +
+        (solved ? '' : `<button class="link" type="button" data-act="showme">${T('doIt')}</button>`) + '</div>';
     }
     if (solved && b.after) h += `<div class="fb good" role="status">${b.after}</div>`;
   }
-  if (App.playing && b.cp && !solved) h += '<div class="wait">Your turn! The lesson keeps going as soon as you answer.</div>';
-  if (App.i === B.length - 1) h += '<button class="bigbtn" type="button" data-act="replay">Watch it again</button><button class="bigbtn alt" type="button" data-act="own">Try another problem</button>';
+  if (App.playing && b.cp && !solved) h += `<div class="wait">${T('wait')}</div>`;
+  if (App.i === B.length - 1) h += `<button class="bigbtn" type="button" data-act="replay">${T('again')}</button><button class="bigbtn alt" type="button" data-act="own">${T('another')}</button>`;
   App.shake = null;
   panel.innerHTML = h;
   panel.scrollTop = 0;
 
   $('#prog').style.width = ((App.i + 1) / B.length * 100) + '%';
   bBack.disabled = App.i === 0;
-  bPlay.innerHTML = App.playing
-    ? '<svg viewBox="0 0 16 16"><path d="M3 2h4v12H3zM9 2h4v12H9z"/></svg>Pause'
-    : '<svg viewBox="0 0 16 16"><path d="M4 2v12l10-6z"/></svg>Play';
+  bPlay.innerHTML = (App.playing ? SVG_PAUSE : SVG_PLAY) + (App.playing ? T('pause') : T('play'));
   const last = App.i >= B.length - 1;
-  if (b.cp && !solved) { bNext.textContent = 'Answer first'; bNext.disabled = !App.unlock; }
-  else { bNext.innerHTML = (b.cp ? 'Continue' : 'Next') + '<svg viewBox="0 0 16 16"><path d="M5 2v12l7-6z"/></svg>'; bNext.disabled = last; }
-  const first = App.i === 0 && !App.playing;
+  if (b.cp && !solved) { bNext.textContent = T('answerFirst'); bNext.disabled = !App.unlock; }
+  else { bNext.innerHTML = (b.cp ? T('cont') : T('next')) + SVG_NEXT; bNext.disabled = last; }
+  const first = App.i === 0 && !App.playing && App.autoNext;
   bPlay.classList.toggle('primary', first);
   bNext.classList.toggle('primary', !bNext.disabled && !first);
   bNext.classList.toggle('counting', !!App.countMs && !!b.cp && solved);
@@ -751,42 +844,50 @@ function render() {
   paintRail(b);
 }
 
-/* ---------- voice + timing ---------- */
+/* ================= voice + timing ================= */
 const SP = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-const Voice = {list:[], pick:null, rate:.97};
+const Voice = {list:[], picks:{en:null, es:null}, pick:null, rate:.97};
 const BADV = /(fred|albert|zarvox|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|junior|kathy|organ|princess|ralph|trinoids|whisper|wobble|superstar|jester|agnes|compact|eddy|flo\b|grandma|grandpa|reed|rocko|sandy|shelley|espeak)/i;
 function scoreVoice(v) {
   const n = v.name || '', l = (v.lang || '').replace('_', '-');
-  if (!/^en(-|$)/i.test(l)) return -1000;
-  let sc = /^en-US$/i.test(l) ? 40 : 10;
+  if (!new RegExp('^' + lang + '(-|$)', 'i').test(l)) return -1000;
+  let sc = 10;
+  if (lang === 'en') { if (/^en-US$/i.test(l)) sc = 40; }
+  else { if (/^es-US$/i.test(l)) sc = 40; else if (/^es-MX$/i.test(l)) sc = 38; }
   if (BADV.test(n)) sc -= 200;
   if (/natural|neural|online/i.test(n)) sc += 60;
   if (/premium|enhanced|siri/i.test(n)) sc += 45;
-  if (/google us english/i.test(n)) sc += 35;
-  if (/\b(aria|jenny|ava|allison|samantha|evan|nathan|zoe|michelle|emma|guy|sonia|joelle|noelle)\b/i.test(n)) sc += 20;
+  if (/google (us english|español)/i.test(n)) sc += 35;
+  if (/\b(aria|jenny|ava|allison|samantha|evan|nathan|zoe|michelle|emma|guy|sonia|joelle|noelle|dalia|jorge|paloma|alonso|paulina|sabina|marisol|angelica|diego|juan|monica|lupe|catalina)\b/i.test(n)) sc += 20;
   if (v.localService === false) sc += 5;
   return sc;
 }
 function fillVoiceSelect() {
   const sel = $('#voiceSel'); if (!sel) return;
-  sel.innerHTML = Voice.list.slice(0, 14).map((v, i) => `<option value="${i}">${v.name.replace(/Microsoft |Google /, '').replace(/ - English.*$/, '')}</option>`).join('');
+  sel.innerHTML = Voice.list.slice(0, 14).map((v, i) => `<option value="${i}">${v.name.replace(/Microsoft |Google /, '').replace(/ - (English|Spanish).*$/, '')}</option>`).join('');
   const ix = Voice.list.indexOf(Voice.pick);
   if (ix >= 0 && ix < 14) sel.value = String(ix);
 }
 function loadVoices() {
   if (!SP) return;
-  const all = speechSynthesis.getVoices().filter(v => /^en(-|_|$)/i.test(v.lang));
+  const all = speechSynthesis.getVoices().filter(v => new RegExp('^' + lang + '(-|_|$)', 'i').test(v.lang));
   all.sort((x, y) => scoreVoice(y) - scoreVoice(x));
   Voice.list = all;
-  if (!Voice.pick || !all.includes(Voice.pick)) Voice.pick = all[0] || null;
+  const keep = Voice.picks[lang];
+  Voice.pick = (keep && all.includes(keep)) ? keep : (all[0] || null);
+  Voice.picks[lang] = Voice.pick;
   fillVoiceSelect();
 }
 function toSpeech(t) {
+  if (lang === 'es') return t
+    .replace(/(\d+)\.(\d+)/g, (m, a, b) => `${a} punto ${b.split('').join(' ')}`)
+    .replace(/=\s*\?/g, ' es igual a cuánto?')
+    .replace(/÷/g, ' dividido entre ').replace(/×/g, ' por ').replace(/−/g, ' menos ').replace(/=/g, ' es igual a ')
+    .replace(/\s+/g, ' ').trim();
   return t
     .replace(/(\d+)\.(\d+)/g, (m, a, b) => `${a} point ${b.split('').join(' ')}`)
     .replace(/=\s*\?/g, ' equals what?')
     .replace(/÷/g, ' divided by ').replace(/×/g, ' times ').replace(/−/g, ' minus ').replace(/=/g, ' equals ')
-    .replace(/\b0s\b/g, 'zeros').replace(/\ba 0\b/g, 'a zero')
     .replace(/\s+/g, ' ').trim();
 }
 let speakTok = 0;
@@ -804,7 +905,7 @@ function speak(text, cb) {
     if (k >= chunks.length) { finish(); return; }
     const u = new SpeechSynthesisUtterance(chunks[k++]);
     if (Voice.pick) u.voice = Voice.pick;
-    u.lang = (Voice.pick && Voice.pick.lang) || 'en-US';
+    u.lang = (Voice.pick && Voice.pick.lang) || (lang === 'es' ? 'es-US' : 'en-US');
     u.rate = Voice.rate; u.pitch = 1;
     u.onstart = () => { began = true; };
     u.onend = () => setTimeout(step, 150);
@@ -812,11 +913,9 @@ function speak(text, cb) {
     speechSynthesis.speak(u);
   };
   setTimeout(step, 60);
-  /* if the browser voice never starts, carry on silently instead of waiting */
   setTimeout(() => {
     if (my === speakTok && !began) { speakTok++; try { speechSynthesis.cancel(); } catch (e) {} finish(false); }
   }, 2500);
-  /* overall safety net, based on how long the text should take to say */
   setTimeout(() => { if (my === speakTok) finish(); }, Math.max(6000, chunks.join(' ').length * 110));
 }
 const dwell = t => Math.min(4000, Math.max(1500, 900 + t.length * 16));
@@ -844,7 +943,7 @@ function present(text, advance, force) {
   if (App.speech) speak(text, done); else done(false);
 }
 
-/* ---------- navigation ---------- */
+/* ================= navigation ================= */
 function enter() {
   const b = B[App.i];
   const solved = !b.cp || App.solved[App.i];
@@ -879,9 +978,10 @@ function solve() {
   App.solved[App.i] = true;
   App.msg[App.i] = '';
   const b = B[App.i];
-  App.countMs = (App.speech || App.i >= B.length - 1) ? 0 : answerDelay(b.after || '');
+  const auto = App.autoNext;
+  App.countMs = (!auto || App.speech || App.i >= B.length - 1) ? 0 : answerDelay(b.after || '');
   render();
-  present(b.after || '', true, true);
+  present(b.after || '', auto, auto);
   bNext.focus({preventScroll:true});
 }
 function tapTarget() {
@@ -895,23 +995,69 @@ function choose(ix) {
   const b = B[App.i]; if (!b.cp || App.solved[App.i]) return;
   if (ix === b.cp.correct) { solve(); return; }
   (App.wrong[App.i] = App.wrong[App.i] || new Set()).add(ix);
-  App.msg[App.i] = (b.cp.fb && b.cp.fb[ix]) || 'Not quite. Try again.';
+  App.msg[App.i] = (b.cp.fb && b.cp.fb[ix]) || '';
   App.shake = ix;
   render();
 }
 
-/* ---------- loading a problem ---------- */
+/* ================= loading, language, mode ================= */
+function setFirstIdx() { firstIdx = [0,1,2,3,4,5,6].map(k => B.findIndex(b => b.step === k)); }
 function install(res) {
-  P = res.P; B = res.B;
-  firstIdx = STEPS.map((_, k) => B.findIndex(b => b.step === k));
+  P = res.P; B = res.B; setFirstIdx();
   for (const el of els.values()) el.remove();
   els.clear(); prev = null;
   qDvd.value = P.dvdS; qDvr.value = P.dvrS; qerr.textContent = '';
   clearTimeout(App.autoT); stopSpeech();
   restart();
 }
+function rebuild() {            /* same problem, keep position (language or mode changed) */
+  const r = buildLesson(P.dvdS, P.dvrS);
+  if (r.error) return;
+  P = r.P; B = r.B; setFirstIdx();
+  render();
+}
+function updateModeUI() {
+  const w = $('#bWalk'), o = $('#bOwn');
+  w.classList.toggle('primary', App.mode === 'walk'); o.classList.toggle('primary', App.mode === 'own');
+  w.setAttribute('aria-pressed', App.mode === 'walk'); o.setAttribute('aria-pressed', App.mode === 'own');
+}
+function updateAutoUI() {
+  document.body.classList.toggle('manual', !App.autoNext);
+  const c = $('#autoNext'); if (c) c.checked = App.autoNext;
+}
+function setMode(m) {
+  if (App.mode !== m) {
+    App.mode = m;
+    updateModeUI();
+    if (P) rebuild();
+  } else updateModeUI();
+}
+function applyStatic() {
+  document.documentElement.lang = lang;
+  document.title = T('title') + ': ' + T('sub');
+  const set = (id, k) => { const e = $(id); if (e) e.textContent = T(k); };
+  set('#hTitle', 'title'); set('#hSub', 'sub'); set('#bWalk', 'walk'); set('#bOwn', 'own'); set('#teachTxt', 'teach');
+  set('#railH', 'steps'); set('#skipTxt', 'skip'); set('#lblDvd', 'lblDvd'); set('#lblDvr', 'lblDvr');
+  set('#goBtn', 'go'); set('#qSurprise', 'surprise'); set('#bRestart', 'restart'); set('#autoTxt', 'autoNext'); set('#speechTxt', 'voice'); set('#hint', 'hint');
+  bBack.innerHTML = SVG_BACK + T('back');
+  const rs = $('#rateSel');
+  rs.options[0].textContent = T('slow'); rs.options[1].textContent = T('normal'); rs.options[2].textContent = T('fast');
+  $('#langEn').classList.toggle('primary', lang === 'en'); $('#langEs').classList.toggle('primary', lang === 'es');
+  $('#langEn').setAttribute('aria-pressed', lang === 'en'); $('#langEs').setAttribute('aria-pressed', lang === 'es');
+  $('#qDvd').setAttribute('aria-label', T('lblDvd')); $('#qDvr').setAttribute('aria-label', T('lblDvr'));
+}
+function setLang(l) {
+  if (l === lang) return;
+  lang = l; stopSpeech();
+  applyStatic(); loadVoices();
+  if (P) {
+    qerr.textContent = '';
+    rebuild();
+    if (App.speech) { const b = B[App.i], solved = !b.cp || !!App.solved[App.i]; present(spokenFor(b, solved), solved, !!(b.cp && solved && App.countMs)); }
+  }
+}
 
-/* ---------- events ---------- */
+/* ================= events ================= */
 board.addEventListener('click', e => { if (e.target.closest('.n.target')) tapTarget(); });
 panel.addEventListener('click', e => {
   const o = e.target.closest('.opt'); if (o && !o.disabled) { choose(+o.dataset.i); return; }
@@ -927,6 +1073,7 @@ stepsEl.addEventListener('click', e => {
 bBack.addEventListener('click', () => go(App.i - 1));
 bNext.addEventListener('click', next);
 bPlay.addEventListener('click', () => {
+  if (!App.autoNext) return;
   if (App.playing) { App.playing = false; clearTimeout(App.autoT); App.token++; stopSpeech(); render(); return; }
   if (App.i >= B.length - 1) { App.solved = []; App.wrong = []; App.msg = []; App.taps = []; App.furthest = 0; App.i = 0; }
   App.playing = true;
@@ -935,28 +1082,34 @@ bPlay.addEventListener('click', () => {
   present(spokenFor(b, !b.cp || !!App.solved[App.i]), !b.cp || App.solved[App.i]);
 });
 $('#bRestart').addEventListener('click', restart);
+$('#autoNext').addEventListener('change', e => {
+  App.autoNext = e.target.checked;
+  if (!App.autoNext) { App.playing = false; clearTimeout(App.autoT); App.token++; App.countMs = 0; stopSpeech(); }
+  updateAutoUI();
+  if (P) rebuild();
+});
+$('#unlock').addEventListener('change', e => { App.unlock = e.target.checked; render(); });
+if (/[?&]teacher\b/.test(location.search)) { App.unlock = true; $('#unlock').checked = true; }
+$('#langEn').addEventListener('click', () => setLang('en'));
+$('#langEs').addEventListener('click', () => setLang('es'));
+
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { App.started = true; }, true));
 if (!SP) $('#voicebar').style.display = 'none';
 else {
   App.speech = false; $('#speech').checked = false; $('#voicebar').classList.add('off');
-  loadVoices();
   speechSynthesis.onvoiceschanged = loadVoices;
-  const sample = () => speak("Alright, let's raise the roof!", null);
-  const resumeCurrent = () => {
-    const b = B[App.i], solved = !b.cp || !!App.solved[App.i];
-    present(spokenFor(b, solved), solved, !!(b.cp && solved && App.countMs));
-  };
+  const sample = () => speak(T('sample'), null);
   $('#speech').addEventListener('change', e => {
     App.speech = e.target.checked;
     $('#voicebar').classList.toggle('off', !App.speech);
     stopSpeech();
-    resumeCurrent();
+    const b = B[App.i], solved = !b.cp || !!App.solved[App.i];
+    present(spokenFor(b, solved), solved, !!(b.cp && solved && App.countMs));
   });
-  $('#voiceSel').addEventListener('change', e => { Voice.pick = Voice.list[+e.target.value] || Voice.pick; sample(); });
+  $('#voiceSel').addEventListener('change', e => { Voice.pick = Voice.list[+e.target.value] || Voice.pick; Voice.picks[lang] = Voice.pick; sample(); });
   $('#rateSel').addEventListener('change', e => { Voice.rate = parseFloat(e.target.value); sample(); });
 }
-$('#unlock').addEventListener('change', e => { App.unlock = e.target.checked; render(); });
-if (/[?&]teacher\b/.test(location.search)) { App.unlock = true; $('#unlock').checked = true; }
+
 document.addEventListener('keydown', e => {
   if (e.altKey || e.ctrlKey || e.metaKey) return;
   const t = e.target;
@@ -969,18 +1122,13 @@ let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTime
 
 /* problem entry (inline) */
 const qDvd = $('#qDvd'), qDvr = $('#qDvr'), qerr = $('#qerr');
-function focusOwn() { qDvd.focus(); qDvd.select(); qDvd.scrollIntoView({block:'nearest'}); }
+function focusOwn() { qDvd.focus(); qDvd.select(); if (qDvd.scrollIntoView) qDvd.scrollIntoView({block:'nearest'}); }
 function tryProblem(a, b) {
   const r = buildLesson(a, b);
   if (r.error) { qerr.textContent = r.error; return false; }
   qerr.textContent = '';
   install(r);
   return true;
-}
-function setMode(m) {
-  const w = $('#bWalk'), o = $('#bOwn');
-  w.classList.toggle('primary', m === 'walk'); o.classList.toggle('primary', m === 'own');
-  w.setAttribute('aria-pressed', m === 'walk'); o.setAttribute('aria-pressed', m === 'own');
 }
 $('#pinline').addEventListener('submit', e => { e.preventDefault(); setMode('own'); tryProblem(qDvd.value, qDvr.value); });
 [qDvd, qDvr].forEach(el => el.addEventListener('input', () => { qerr.textContent = ''; }));
@@ -996,6 +1144,10 @@ $('#qSurprise').addEventListener('click', () => {
 $('#bOwn').addEventListener('click', () => { setMode('own'); focusOwn(); });
 $('#bWalk').addEventListener('click', () => { setMode('walk'); tryProblem('4.5', '0.4'); });
 
+applyStatic();
+updateModeUI();
+updateAutoUI();
+if (SP) loadVoices();
 install(buildLesson('4.5', '0.4'));
 })();
 </script>
