@@ -101,6 +101,7 @@ button{font-family:inherit}
 .mn{color:var(--muted);font-weight:500}
 .ln{background:var(--ink);border-radius:3px}
 .tag{z-index:1;font:700 13px var(--body);color:var(--muted);background:var(--surface);border:2px dashed var(--line);border-radius:999px;white-space:nowrap}
+.tag.approx{font-family:var(--display);font-weight:600;color:var(--green);border:2px solid var(--green);background:color-mix(in srgb,var(--green) 12%,var(--surface))}
 .tally{z-index:1;background:var(--yellow);color:#17283A;border-radius:999px;font-weight:600}
 .glow{animation:glow 1.6s ease-in-out infinite}
 @keyframes glow{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--blue) 25%,transparent)}}
@@ -267,7 +268,18 @@ en: {
   aDvrDot:'Decimal point in the divisor', aDdDot:'Decimal point in the dividend', aDigit:c => `Digit ${c} inside the house`, aZero:'Add a zero',
   eFmt:'Enter numbers like 4.5 or 12.', eZero:"We can't divide by zero.", eDvd0:'The dividend must be more than 0.',
   eDvrLen:'Divisor: 3 digits max, like 0.25.', eDvdLen:'Dividend: 4 digits max, like 12.5.',
-  eLong:"Doesn't end evenly within 3 extra decimal places. Try other numbers.",
+  eLong:"That one is too long for this lesson. Try other numbers.", eSmall:"The answer is too tiny for this lesson. Try other numbers.",
+  roundLabel:'Still a remainder: round',
+  foreverSay:'Still a remainder after 4 decimal places. Some quotients run on forever, so we stop and round to the nearest thousandth.',
+  roundWhichSay:'To round to the nearest thousandth, look at the next digit.', roundWhichPrompt:'Which digit decides?',
+  roundWhichOpts:(d3, d4, n) => [`${d3} (thousandths)`, `${d4} (the next digit)`, `${n} (the remainder)`],
+  roundWhichFb0:'That is the digit we keep.', roundWhichFb2:'The remainder is not a digit of the answer.',
+  roundWhichAfter:d4 => d4 >= 5 ? `${d4} is 5 or more: round up.` : `${d4} is 4 or less: the thousandths digit stays.`,
+  roundSay:'Now round.', roundPrompt:q4 => `Round ${q4} to the nearest thousandth.`, roundFb:'Look at the digit after the thousandths place.',
+  roundAfter:(q4, r) => `${q4} ≈ ${r}.`,
+  checkSayR:q => `All done! Rounded answer: ${q}. Check: answer × divisor should be close to the dividend.`,
+  checkApprox:(q, b, p, a) => `${q} × ${b} = ${p}. Close to ${a}, but not exact, because we rounded.`,
+  finalSayR:(a, b, q) => `${a} ÷ ${b} ≈ ${q}. Some quotients run on forever, so we round. These steps work on any decimal division.`,
   sample:"Alright, let's raise the roof!",
   place:n => `${n} place${n === 1 ? '' : 's'}`, time:n => `${n} time${n === 1 ? '' : 's'}`, zeros:n => `${n} zero${n === 1 ? '' : 's'}`,
   welcome:(a, b, auto) => `Welcome! We'll use a house to divide decimals. Today: ${a} ÷ ${b}. ${auto ? 'Press Play or Next.' : "Press Next when you're ready."}`,
@@ -320,7 +332,18 @@ es: {
   aDvrDot:'Punto decimal del divisor', aDdDot:'Punto decimal del dividendo', aDigit:c => `Dígito ${c} adentro de la casa`, aZero:'Agregar un cero',
   eFmt:'Escribe números como 4.5 o 12.', eZero:'No se puede dividir entre cero.', eDvd0:'El dividendo debe ser mayor que 0.',
   eDvrLen:'Divisor: máximo 3 dígitos, como 0.25.', eDvdLen:'Dividendo: máximo 4 dígitos, como 12.5.',
-  eLong:'No termina exacto con 3 decimales extra. Prueba otros números.',
+  eLong:'Ese es demasiado largo para esta lección. Prueba otros números.', eSmall:'La respuesta es demasiado pequeña para esta lección. Prueba otros números.',
+  roundLabel:'Aún hay residuo: redondea',
+  foreverSay:'Aún hay residuo después de 4 decimales. Algunos cocientes no terminan nunca, así que paramos y redondeamos a la milésima.',
+  roundWhichSay:'Para redondear a la milésima, mira el dígito que sigue.', roundWhichPrompt:'¿Qué dígito decide?',
+  roundWhichOpts:(d3, d4, n) => [`${d3} (milésimas)`, `${d4} (el siguiente)`, `${n} (el residuo)`],
+  roundWhichFb0:'Ese es el dígito que nos quedamos.', roundWhichFb2:'El residuo no es un dígito de la respuesta.',
+  roundWhichAfter:d4 => d4 >= 5 ? `${d4} es 5 o más: redondeamos hacia arriba.` : `${d4} es 4 o menos: la milésima se queda igual.`,
+  roundSay:'Ahora redondea.', roundPrompt:q4 => `Redondea ${q4} a la milésima.`, roundFb:'Mira el dígito que sigue a la milésima.',
+  roundAfter:(q4, r) => `${q4} ≈ ${r}.`,
+  checkSayR:q => `¡Listo! Respuesta redondeada: ${q}. Comprueba: respuesta × divisor debe dar casi el dividendo.`,
+  checkApprox:(q, b, p, a) => `${q} × ${b} = ${p}. Muy cerca de ${a}, pero no exacto, porque redondeamos.`,
+  finalSayR:(a, b, q) => `${a} ÷ ${b} ≈ ${q}. Algunos cocientes no terminan nunca, por eso redondeamos. Estos pasos sirven para cualquier división de decimales.`,
   sample:'¡Muy bien, levantemos el techo!',
   place:n => `${n} ${n === 1 ? 'lugar' : 'lugares'}`, time:n => `${n} ${n === 1 ? 'vez' : 'veces'}`, zeros:n => `${n} ${n === 1 ? 'cero' : 'ceros'}`,
   welcome:(a, b, auto) => `¡Bienvenidos! Usaremos una casa para dividir decimales. Hoy: ${a} ÷ ${b}. ${auto ? 'Oprime Reproducir o Siguiente.' : 'Oprime Siguiente para empezar.'}`,
@@ -404,7 +427,7 @@ function buildLesson(dvdStr, dvrStr) {
   if (dvr.digits.length > 3) return {error:T('eDvrLen')};
   if (dvd.digits.length > 4) return {error:T('eDvdLen')};
   try { return makeBeats(dvd, dvr); }
-  catch (e) { if (e && e.code === 'long') return {error:T('eLong')}; throw e; }
+  catch (e) { if (e && e.code === 'long') return {error:T('eLong')}; if (e && e.code === 'small') return {error:T('eSmall')}; throw e; }
 }
 
 function makeBeats(dvd, dvr) {
@@ -412,6 +435,8 @@ function makeBeats(dvd, dvr) {
   const B = [];
   const add = b => (B.push(b), b);
   const tooLong = () => { const e = new Error('long'); e.code = 'long'; throw e; };
+  const tooSmall = () => { const e = new Error('small'); e.code = 'small'; throw e; };
+  const fixed = (n, dec) => { const t = String(n).padStart(dec + 1, '0'); return t.slice(0, t.length - dec) + '.' + t.slice(t.length - dec); };
   const nd = dvr.digits.length, m = nd - dvr.dot, D = parseInt(dvr.digits.join(''), 10);
   const typed = dvd.digits.map(Number), L = typed.length, b0 = dvd.dot, bS = b0 + m;
   const pad = Math.max(0, bS - L);
@@ -471,6 +496,7 @@ function makeBeats(dvd, dvr) {
   /* where does the dividing start? */
   let s0 = f, val = dig(f);
   while (val < D) { s0++; val = val * 10 + dig(s0); }
+  if (s0 > bS + 3) tooSmall();
   const pl = [];
   for (let j = 0; j < s0; j++) if (j >= bS - 1) pl.push(j);
   const qd = [];
@@ -481,7 +507,7 @@ function makeBeats(dvd, dvr) {
 
   while (vis <= s0) {
     const slot = vis, pv = parseInt(Array.from({length:slot - f}, (_, k) => dig(f + k)).join('') || '0', 10);
-    if (++A > 3) tooLong();
+    A++;
     add({step:5, say:T('preZero', D, pv),
       show:s => { s.qtag = false; s.ghost = slot; s.target = 'ghost0'; s.hl = ddIds(f, slot - 1); },
       cp:{type:'tap', instr:T('zeroInstr')},
@@ -498,7 +524,7 @@ function makeBeats(dvd, dvr) {
 
   let i = s0, cur = val, rowId = null, curSlots = [];
   for (let k = f; k <= s0; k++) curSlots.push(k);
-  let lastSlot = -1;
+  let lastSlot = -1, rounding = false, remAtStop = 0;
 
   for (let r = 0; r < 14; r++) {
     const q = Math.floor(cur / D), mult = q * D, nrem = cur - mult;
@@ -552,6 +578,7 @@ function makeBeats(dvd, dvr) {
 
     const more = ci < vis - 1;
     if (nrem === 0 && !more) { lastSlot = ci; break; }
+    if (ci >= bS + 3) { lastSlot = ci; rounding = true; remAtStop = nrem; break; }
     const nr = newRow, ns = newSlots.slice();
 
     if (more) {
@@ -564,7 +591,7 @@ function makeBeats(dvd, dvr) {
       cur = nextCur; curSlots = ns.concat(ci + 1); rowId = nr; i = ci + 1;
     } else {
       const slotIdx = vis, firstZero = !zeroTaught;
-      if (++A > 3) tooLong();
+      A++;
       const remIds = ns.map(sl => `w-${nr}-${sl}`);
       if (firstZero) {
         zeroTaught = true;
@@ -584,24 +611,48 @@ function makeBeats(dvd, dvr) {
   }
   if (lastSlot < 0) tooLong();
   const N = lastSlot + 1;
-  if (N > 10) tooLong();
+  if (N > 12) tooLong();
 
   const qFull = Array.from({length:N}, (_, j) => qd[j] == null ? 0 : qd[j]);
-  const qStr = fmtDigits(qFull, bS);
   const qIds = Array.from({length:N}, (_, j) => 'q-' + j);
+  let qStr = fmtDigits(qFull, bS), qDec = N - bS, QI = parseInt(qFull.join(''), 10);
 
-  const QI = parseInt(qFull.join(''), 10), qDec = N - bS, prodDec = qDec + m, prod = QI * D;
+  if (rounding) {
+    const d3 = qFull[N - 2], d4 = qFull[N - 1], lastRem = remAtStop;
+    const t3 = parseInt(qFull.slice(0, N - 1).join(''), 10);
+    const q4 = fixed(QI, 4), keepS = fixed(t3, 3), upS = fixed(t3 + 1, 3);
+    const roundedS = d4 >= 5 ? upS : keepS;
+    const hlRound = [`q-${N - 2}`, `q-${N - 1}`];
+    add({step:5, label:T('roundLabel'), say:T('foreverSay'),
+      show:s => { s.loop = false; s.hl = hlRound; }});
+    add({step:5, label:T('roundLabel'), say:T('roundWhichSay'),
+      show:s => { s.hl = hlRound; },
+      cp:{type:'choice', prompt:T('roundWhichPrompt'), options:T('roundWhichOpts', d3, d4, lastRem), correct:1,
+        fb:{0:T('roundWhichFb0'), 2:T('roundWhichFb2')}},
+      after:T('roundWhichAfter', d4)});
+    const rOpts = uniq([roundedS, d4 >= 5 ? keepS : upS, q4]).sort((x, y) => parseFloat(x) - parseFloat(y));
+    const rFb = {};
+    rOpts.forEach((o, ix) => { if (o !== roundedS) rFb[ix] = T('roundFb'); });
+    add({step:5, label:T('roundLabel'), say:T('roundSay'),
+      show:s => { s.hl = hlRound; },
+      cp:{type:'choice', prompt:T('roundPrompt', q4), options:rOpts, correct:rOpts.indexOf(roundedS), fb:rFb},
+      done:s => { s.approx = roundedS; },
+      after:T('roundAfter', q4, roundedS)});
+    qStr = roundedS; qDec = 3; QI = t3 + (d4 >= 5 ? 1 : 0);
+  }
+
+  const prodDec = qDec + m, prod = QI * D;
   const prodStr = fmtDecInt(prod, prodDec);
   const bigger = fmtDecInt(prodDec > 0 ? prod : prod * 10, Math.max(0, prodDec - 1));
   const smaller = fmtDecInt(prod, prodDec + 1);
-  const cOpts = uniq([prodStr, bigger, smaller]).sort((a, b) => parseFloat(a) - parseFloat(b));
+  const cOpts = uniq([prodStr, bigger, smaller]).sort((x, y) => parseFloat(x) - parseFloat(y));
   const cFb = {};
   cOpts.forEach((o, ix) => { if (o !== prodStr) cFb[ix] = T('checkFb', qDec, m); });
-  add({step:6, say:T('checkSay', qStr),
+  add({step:6, say:T(rounding ? 'checkSayR' : 'checkSay', qStr),
     show:s => { s.loop = false; s.hl = qIds; },
     cp:{type:'choice', prompt:`${qStr} × ${dvrS} = ?`, options:cOpts, correct:cOpts.indexOf(prodStr), fb:cFb},
-    after:T('checkAfter', qStr, dvrS, prodStr)});
-  add({step:6, say:T('finalSay', dvdS, dvrS, qStr), show:s => { s.hl = qIds; }});
+    after:(rounding && prodStr !== dvdS) ? T('checkApprox', qStr, dvrS, prodStr, dvdS) : T('checkAfter', qStr, dvrS, prodStr)});
+  add({step:6, say:T(rounding ? 'finalSayR' : 'finalSay', dvdS, dvrS, qStr), show:s => { s.hl = qIds; }});
 
   return {B, P:{dvd, dvr, dvdS, dvrS, nd, m, D, L, L2, N, b0, bS}};
 }
@@ -611,7 +662,7 @@ let P, B, firstIdx;
 const init = () => ({
   house:false, tags:false, divShow:false, ddShow:false, dvDot:P.dvr.dot, dvDimN:0, ddDot:P.b0, dimLead:0, raised:false,
   visible:P.L, used:[], ghost:null, moves:0, tally:false, qtag:false,
-  quot:Array(P.N).fill(null), work:[], loop:false,
+  quot:Array(P.N).fill(null), work:[], loop:false, approx:null,
   focus:[], hl:[], target:null, phase:null
 });
 const App = {autoNext:true, mode:'walk', countMs:0, i:0, solved:[], wrong:[], msg:[], taps:[], furthest:0, playing:false, speech:false, started:false, unlock:false, token:0, autoT:0, shake:null};
@@ -685,6 +736,7 @@ function layout(s, g) {
     out.push({id:'tag-dds', cls:'tag', text:T('tagDvd'), x:g.ddX0 + P.L * W / 2, y:g.ddY + .8 * H, w:2.1 * W, h:.5 * W});
   }
   if (s.qtag) out.push({id:'tag-q', cls:'tag', text:T('tagQ'), x:g.ddX0 + P.N * W / 2, y:.24 * W, w:3.6 * W, h:.45 * W});
+  if (s.approx) out.push({id:'tag-approx', cls:'tag approx', text:'≈ ' + s.approx, x:g.ddX0 + P.N * W / 2, y:.24 * W, w:3.4 * W, h:.5 * W, fs:.34 * W});
   if (s.tally) out.push({id:'tally', cls:'tally', text:T('moves', s.moves), x:g.divX0 + P.nd * g.dw / 2, y:g.qy, w:2.3 * W, h:.56 * W, fs:.3 * W});
   return out;
 }
@@ -1133,7 +1185,7 @@ function tryProblem(a, b) {
 $('#pinline').addEventListener('submit', e => { e.preventDefault(); setMode('own'); tryProblem(qDvd.value, qDvr.value); });
 [qDvd, qDvr].forEach(el => el.addEventListener('input', () => { qerr.textContent = ''; }));
 const SURPRISES = [['7.5','0.25'],['6.3','0.9'],['0.6','0.4'],['9.6','0.12'],['1.2','0.05'],['3.5','0.7'],['12.6','0.3'],
-  ['2.4','0.6'],['5','0.4'],['18','0.5'],['7.2','0.08'],['0.5','4'],['10.4','0.8'],['8.4','0.07'],['1.5','0.2'],['0.9','0.6']];
+  ['2.4','0.6'],['5','0.4'],['18','0.5'],['7.2','0.08'],['0.5','4'],['10.4','0.8'],['8.4','0.07'],['1.5','0.2'],['0.9','0.6'],['1','0.3'],['5','0.6'],['2','0.7']];
 let lastSurprise = -1;
 $('#qSurprise').addEventListener('click', () => {
   let k; do { k = Math.floor(Math.random() * SURPRISES.length); } while (k === lastSurprise);
